@@ -6,14 +6,21 @@
  */
 
 
-async function drawChart(container, dataFile) {
+async function drawChart(container) {
     // Load the data and convert numbers
-    const data = await d3.csv(dataFile);
+    const data = await d3.csv("tube-stations.csv");
     data.forEach(d=>{
         d.latitude = parseFloat(d.latitude), 
         d.longitude = parseFloat(d.longitude) 
     });
 
+    let linesData = await d3.csv("tube-lines.csv");
+    data.forEach(d=>{
+        d.line = parseInt(d.line), 
+        d.latitude = parseFloat(d.latitude), 
+        d.longitude = parseFloat(d.longitude) 
+    });    
+ 
 
     // Where is centre of map
     // Covent Garden
@@ -91,6 +98,7 @@ async function drawChart(container, dataFile) {
     // console.log(PLOT.WIDTH)
 
     // Compute max radius of the map for polar coords
+    //let maxRadius = Math.min(PLOT.WIDTH/2, PLOT.HEIGHT/2)               // edge of shortest dimension
     let maxRadius = Math.max(PLOT.WIDTH/2, PLOT.HEIGHT/2)               // edge of longest dimension
 
 
@@ -101,7 +109,7 @@ async function drawChart(container, dataFile) {
         .style('border', "1px solid black")
 
         
-    let scaleFactor = 1
+
 
     // Scale longitude and latitude to pixels
     let scaleLon = d=>scale(d, minLon, maxLon, -PLOT.WIDTH/2,  PLOT.WIDTH/2) 
@@ -132,10 +140,7 @@ async function drawChart(container, dataFile) {
     }
 
     function scaleColour(d) {
-        if (d.name=="Covent Garden")
-            return "red"
-        else
-            return "black"
+        return "black"
     }
  
 
@@ -145,14 +150,14 @@ async function drawChart(container, dataFile) {
         .append("g")  
         .attr("transform", "translate("+PLOT.MIDX+","+PLOT.MIDY+")") 
     
-        // Centre circle
+    // Centre circle
     g
         .append("circle")
         .attr("cx",xScaleRadial(mapCentreLon, mapCentreLat))
         .attr("cy",yScaleRadial(mapCentreLon, mapCentreLat))
         .attr("r",20)
-        .style("fill",      "red")
-        .style("stroke", "black")        
+        .style("fill",      "none")
+        .style("stroke", "red")        
 
     // 10 mile circle
     g
@@ -177,27 +182,59 @@ async function drawChart(container, dataFile) {
         .selectAll("circle") 
         .data(data) 
 
-    // Add the station circles to the chart
-    selection
-        .enter()
-        .append("circle")
-            .attr("cx",         d=>xScaleRadial(d["longitude"], d["latitude"]))
-            .attr("cy",         d=>yScaleRadial(d["longitude"], d["latitude"]))        
-            .attr("r",          5)
-            .style("fill",      d=>scaleColour(d))
-            .style("opacity",   1)
+    if (SHOW_STATION_CIRCLES) {
+        // Add the station circles to the chart
+        selection
+            .enter()
+            .append("circle")
+                .attr("cx",         d=>xScaleRadial(d["longitude"], d["latitude"]))
+                .attr("cy",         d=>yScaleRadial(d["longitude"], d["latitude"]))        
+                .attr("r",          5)
+                .style("fill",      d=>scaleColour(d))
+                .style("opacity",   1)
+    }
 
+    if (SHOW_STATION_NAMES) {
+        // Add the station names to the chart
+        selection
+            .enter()
+            .append("text")
+                .attr("x",         d=>xScaleRadial(d["longitude"], d["latitude"]))
+                .attr("y",         d=>yScaleRadial(d["longitude"], d["latitude"])) 
+                .style("fill",      "black")
+                .style("opacity",   1)
+                .attr("class",     "station")
+                .html(d=>d["name"])
+    }
 
-    // Add the station names to the chart
-    selection
-    .enter()
-    .append("text")
-        .attr("x",         d=>xScaleRadial(d["longitude"], d["latitude"]))
-        .attr("y",         d=>yScaleRadial(d["longitude"], d["latitude"])) 
-        .style("fill",      "black")
-        .style("opacity",   1)
-        .attr("class",     "station")
-        .html(d=>d["name"])
+    if (SHOW_LINES) {
+
+        uniqueLines = [...new Set(linesData.map(d => d.line))]
+        console.log(uniqueLines)
+
+        for (let i=0; i<uniqueLines.length; i++) {
+            filteredLinesData = linesData.filter(d=>d["line"] == uniqueLines[i])
+            console.log(filteredLinesData) 
+
+            const colour ="#094FA3"
+
+            let linepoints = d3.line()
+                .x(d=>xScaleRadial(d["longitude"], d["latitude"]))
+                .y(d=>yScaleRadial(d["longitude"], d["latitude"]))
+                .curve(d3.curveCatmullRom.alpha(0.5))
+
+            // Get an object representing the one line
+            let linesSelection = g.append("path").datum(filteredLinesData)      
+            
+            // Add the line to the chart
+            linesSelection
+                .attr("class",      "line")
+                .attr("d",          d=>linepoints(d))
+                .style("stroke",    colour)  
+                .style("stroke-width", 5)
+                .style("fill",      "none")  
+        }
+    }
 
 }
 

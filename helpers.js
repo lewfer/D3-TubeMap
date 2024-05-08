@@ -57,5 +57,17 @@ function ease(t, scaleFactor) {
         return  1-(--t)*t*t*t             // out quart
     else if (scaleFactor==5)
         return  1+(--t)*t*t*t*t             // out quint
+    else if (scaleFactor==9)
+        return  Math.sqrt(1 - Math.pow(t - 1, 2));
+    else if (scaleFactor==10)
+        return Math.sin((t * Math.PI) / 2);
+    else if (scaleFactor==11) {
+        if (t<0.3)
+            return t*2                  // stretch middle third into half radius
+        else if (t>=0.3 && t<0.6)
+            return 0.5+(t-0.3)          // next third into third radius
+        else 
+            return 0.8+(t-0.6)*.2       // final third into 1/5th radius
+    }
 }
 
