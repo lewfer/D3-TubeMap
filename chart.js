@@ -7,6 +7,10 @@
 
 
 async function drawChart(container) {
+    
+    // Data processing
+    // --------------------------------------------------------------------------------------------
+
     // Load the data and convert numbers
     const data = await d3.csv("tube-stations.csv");
     data.forEach(d=>{
@@ -21,6 +25,9 @@ async function drawChart(container) {
         d.longitude = parseFloat(d.longitude) 
     });    
  
+
+    let uniqueLines = [...new Set(linesData.map(d => d.line))]
+    console.log(uniqueLines)
 
     // Where is centre of map
     // Covent Garden
@@ -102,141 +109,204 @@ async function drawChart(container) {
     let maxRadius = Math.max(PLOT.WIDTH/2, PLOT.HEIGHT/2)               // edge of longest dimension
 
 
+    // Create main container objects, that will hold the data-driven SVG objects
+    // -------------------------------------------------------------------------
+
     // Add the svg element, in which we will draw the chart, to the container
     let svg = d3.select(container).append("svg")
         .attr('width', WIDTH)
         .attr('height', HEIGHT)
         .style('border', "1px solid black")
 
-        
-
-
-    // Scale longitude and latitude to pixels
-    let scaleLon = d=>scale(d, minLon, maxLon, -PLOT.WIDTH/2,  PLOT.WIDTH/2) 
-    let scaleLat = d=>scale(d, minLat, maxLat, PLOT.HEIGHT/2, -PLOT.HEIGHT/2) 
-
-    // Scale km and miles to pixels
-    let scaleKm = km=>{pix = km*pixPerKm; return maxRadius*ease(pix/maxRadius,scaleFactor)}
-    let scaleMiles = mi=>{pix = mi*1.60934*pixPerKm; return maxRadius*ease(pix/maxRadius,scaleFactor)}
-
-    // Scale the longitude non-linearly from the centre 
-    function xScaleRadial(lon, lat) {
-        x = scaleLon(lon)
-        y = scaleLat(lat)
-        polar = cartesian_to_polar({x:x, y:y})
-        polar.r = maxRadius*ease(polar.r/maxRadius, scaleFactor)
-        cartesian = polar_to_cartesian(polar)
-        return cartesian.x
-    }
-
-    // Scale the latitude non-linearly from the centre 
-    function yScaleRadial(lon, lat) {
-        x = scaleLon(lon)
-        y = scaleLat(lat)
-        polar = cartesian_to_polar({x:x, y:y})
-        polar.r = maxRadius*ease(polar.r/maxRadius, scaleFactor)
-        cartesian = polar_to_cartesian(polar)
-        return cartesian.y
-    }
-
-    function scaleColour(d) {
-        return "black"
-    }
- 
-
-
-    // Add a group
+    // Add a group for all data-driven objects - station circles and names and lines
     let g = svg  
         .append("g")  
-        .attr("transform", "translate("+PLOT.MIDX+","+PLOT.MIDY+")") 
-    
-    // Centre circle
-    g
-        .append("circle")
-        .attr("cx",xScaleRadial(mapCentreLon, mapCentreLat))
-        .attr("cy",yScaleRadial(mapCentreLon, mapCentreLat))
-        .attr("r",20)
-        .style("fill",      "none")
-        .style("stroke", "red")        
+        .attr("transform", "translate("+PLOT.MIDX+","+PLOT.MIDY+")")
+        
+    let gStationCircles = g.append("g").attr("id","station-circles")
+    let gStationNames = g.append("g").attr("id","station-names")
+    let gMilesRadii = g.append("g").attr("id","miles-radii")
+    let gLines = g.append("g").attr("id","lines")
 
-    // 10 mile circle
-    g
-        .append("circle")
-        .attr("cx",xScaleRadial(mapCentreLon, mapCentreLat))
-        .attr("cy",yScaleRadial(mapCentreLon, mapCentreLat))
-        .attr("r",  scaleMiles(10))
-        .style("fill",      "none")
-        .style("stroke", "green")
 
-    // 20 mile circle
-    g
-        .append("circle")
-        .attr("cx",xScaleRadial(mapCentreLon, mapCentreLat))
-        .attr("cy",yScaleRadial(mapCentreLon, mapCentreLat))
-        .attr("r",  scaleMiles(20))
-        .style("fill",      "none")
-        .style("stroke", "black")
+    // Add a group per line
+    // for (let i=0; i<uniqueLines.length; i++) {
+    //     let lineG = g.append("g").attr("id", "line"+i)
+    // }
 
-    // Get D3 selection object
-    let selection = g
-        .selectAll("circle") 
-        .data(data) 
+        
+    // Update function
+    // -------------------------------------------------------------------------        
+    function update() {    
 
-    if (SHOW_STATION_CIRCLES) {
-        // Add the station circles to the chart
-        selection
-            .enter()
-            .append("circle")
-                .attr("cx",         d=>xScaleRadial(d["longitude"], d["latitude"]))
-                .attr("cy",         d=>yScaleRadial(d["longitude"], d["latitude"]))        
-                .attr("r",          5)
-                .style("fill",      d=>scaleColour(d))
-                .style("opacity",   1)
-    }
+        // Scale longitude and latitude to pixels
+        let scaleLon = d=>scale(d, minLon, maxLon, -PLOT.WIDTH/2,  PLOT.WIDTH/2) 
+        let scaleLat = d=>scale(d, minLat, maxLat, PLOT.HEIGHT/2, -PLOT.HEIGHT/2) 
 
-    if (SHOW_STATION_NAMES) {
-        // Add the station names to the chart
-        selection
-            .enter()
-            .append("text")
-                .attr("x",         d=>xScaleRadial(d["longitude"], d["latitude"]))
-                .attr("y",         d=>yScaleRadial(d["longitude"], d["latitude"])) 
-                .style("fill",      "black")
-                .style("opacity",   1)
-                .attr("class",     "station")
+        // Scale km and miles to pixels
+        let scaleKm = km=>{pix = km*pixPerKm; return maxRadius*ease(pix/maxRadius,scaleFactor)}
+        let scaleMiles = mi=>{pix = mi*1.60934*pixPerKm; return maxRadius*ease(pix/maxRadius,scaleFactor)}
+
+        // Scale the longitude non-linearly from the centre 
+        function xScaleRadial(lon, lat) {
+            x = scaleLon(lon)
+            y = scaleLat(lat)
+            polar = cartesian_to_polar({x:x, y:y})
+            polar.r = maxRadius*ease(polar.r/maxRadius, scaleFactor)
+            cartesian = polar_to_cartesian(polar)
+            return cartesian.x
+        }
+
+        // Scale the latitude non-linearly from the centre 
+        function yScaleRadial(lon, lat) {
+            x = scaleLon(lon)
+            y = scaleLat(lat)
+            polar = cartesian_to_polar({x:x, y:y})
+            polar.r = maxRadius*ease(polar.r/maxRadius, scaleFactor)
+            cartesian = polar_to_cartesian(polar)
+            return cartesian.y
+        }
+
+        function scaleColour(d) {
+            return "black"
+        }
+
+
+        let linepoints = d3.line()
+            .x(d=>xScaleRadial(d["longitude"], d["latitude"]))
+            .y(d=>yScaleRadial(d["longitude"], d["latitude"]))
+            .curve(d3.curveCatmullRom.alpha(0.5))
+
+
+        if (SHOW_MILE_RADIUS_LINES) {
+            // Mile radius circles
+            let mileRadiusData = [5, 10, 15, 20]
+
+            // Get D3 selection object
+            let selection = gMilesRadii
+                .selectAll("circle") 
+                .data(mileRadiusData) 
+
+            // Add the circles to the chart
+            selection
+                .enter()
+                .append("circle")
+                .merge(selection)
+                .transition()
+                .duration(500)
+                    .attr("cx",xScaleRadial(mapCentreLon, mapCentreLat))
+                    .attr("cy",yScaleRadial(mapCentreLon, mapCentreLat))
+                    .attr("r",d=>scaleMiles(d))
+                    .style("fill",      "none")
+                    .style("stroke", "red")                     
+                
+
+            /*
+            // Centre circle
+            g
+                .append("circle")
+                .attr("cx",xScaleRadial(mapCentreLon, mapCentreLat))
+                .attr("cy",yScaleRadial(mapCentreLon, mapCentreLat))
+                .attr("r",20)
+                .style("fill",      "none")
+                .style("stroke", "red")        
+
+            // 10 mile circle
+            g
+                .append("circle")
+                .attr("cx",xScaleRadial(mapCentreLon, mapCentreLat))
+                .attr("cy",yScaleRadial(mapCentreLon, mapCentreLat))
+                .attr("r",  scaleMiles(10))
+                .style("fill",      "none")
+                .style("stroke", "green")
+
+            // 20 mile circle
+            g
+                .append("circle")
+                .attr("cx",xScaleRadial(mapCentreLon, mapCentreLat))
+                .attr("cy",yScaleRadial(mapCentreLon, mapCentreLat))
+                .attr("r",  scaleMiles(20))
+                .style("fill",      "none")
+                .style("stroke", "black")
+            */
+        }
+
+
+        if (SHOW_STATION_CIRCLES) {
+            // Get D3 selection object
+            let circlesSelection = gStationCircles
+                .selectAll("circle") 
+                .data(data) 
+
+            // Add the station circles to the chart
+            circlesSelection
+                .enter()
+                .append("circle")
+                .merge(circlesSelection)
+                .transition()
+                .duration(500)
+                    .attr("cx",         d=>xScaleRadial(d["longitude"], d["latitude"]))
+                    .attr("cy",         d=>yScaleRadial(d["longitude"], d["latitude"]))        
+                    .attr("r",          5)
+                    .style("fill",      d=>scaleColour(d))
+                    .style("opacity",   1)
+
+        }
+
+        if (SHOW_STATION_NAMES) {
+            // Get D3 selection object
+            let namesSelection = gStationNames
+                .selectAll("text") 
+                .data(data) 
+
+            // Add the station names to the chart
+            namesSelection
+                .enter()
+                .append("text")
                 .html(d=>d["name"])
-    }
+                .merge(namesSelection)
+                .transition()
+                .duration(500)
+                    .attr("x",         d=>xScaleRadial(d["longitude"], d["latitude"]))
+                    .attr("y",         d=>yScaleRadial(d["longitude"], d["latitude"])) 
+                    .style("fill",      "black")
+                    .style("opacity",   1)
+                    .attr("class",     "station")
+        }
 
-    if (SHOW_LINES) {
+        if (SHOW_LINES) {
+            // Loop through all the lines
+            for (let i=0; i<uniqueLines.length; i++) {
+                // Select the line data for just this line
+                filteredLinesData = linesData.filter(d=>d["line"] == uniqueLines[i])
 
-        uniqueLines = [...new Set(linesData.map(d => d.line))]
-        console.log(uniqueLines)
+                const colour ="#094FA3"
 
-        for (let i=0; i<uniqueLines.length; i++) {
-            filteredLinesData = linesData.filter(d=>d["line"] == uniqueLines[i])
-            console.log(filteredLinesData) 
-
-            const colour ="#094FA3"
-
-            let linepoints = d3.line()
-                .x(d=>xScaleRadial(d["longitude"], d["latitude"]))
-                .y(d=>yScaleRadial(d["longitude"], d["latitude"]))
-                .curve(d3.curveCatmullRom.alpha(0.5))
-
-            // Get an object representing the one line
-            let linesSelection = g.append("path").datum(filteredLinesData)      
-            
-            // Add the line to the chart
-            linesSelection
-                .attr("class",      "line")
-                .attr("d",          d=>linepoints(d))
-                .style("stroke",    colour)  
-                .style("stroke-width", 5)
-                .style("fill",      "none")  
+                // Get an object representing the one line
+                let linesSelection = gLines.selectAll(".line"+i).data([filteredLinesData]) 
+                
+                // Add the line to the chart
+                linesSelection
+                    .join("path")
+                    .attr("class",      "line"+i)    
+                    .style("stroke",    colour)  
+                    .style("stroke-width", 5)
+                    .style("fill",      "none")  
+                    .transition()
+                    .duration(500)
+                    .attr("d",          d=>linepoints(d))
+            }
         }
     }
 
+    update()
+
+    d3.select("#zoom")
+        .on("change", function() {      
+            sliderValue = document.getElementById("zoom").value  
+            //window.alert("changed");
+            scaleFactor = sliderValue
+            update()
+        })
+
 }
-
-
-        

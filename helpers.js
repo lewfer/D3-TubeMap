@@ -43,31 +43,25 @@ function scale (value, fromMin, fromMax, toMin, toMax) {
 
 
 // Various easing functions
-function ease(t, scaleFactor) {
+function ease(d, scaleFactor) {
     //return 0                          // push all to inner circle
     //return 1                          // push all to outer circle
 
     if (scaleFactor==1)
-        return t                          // no scale
-    else if (scaleFactor==2)
-        return t*(2-t)                    // out quad
-    else if (scaleFactor==3)
-        return (--t)*t*t+1                // out cubic
-    else if (scaleFactor==4)
-        return  1-(--t)*t*t*t             // out quart
-    else if (scaleFactor==5)
-        return  1+(--t)*t*t*t*t             // out quint
+        return d                          // no scale
+    else if (scaleFactor>=2 && scaleFactor <=8)       
+        return 1 - Math.pow(1 - d, scaleFactor);// out quad (2), cubic (3), quart (4), quint (5), etc
     else if (scaleFactor==9)
-        return  Math.sqrt(1 - Math.pow(t - 1, 2));
+        return  Math.sqrt(1 - Math.pow(d - 1, 2));
     else if (scaleFactor==10)
-        return Math.sin((t * Math.PI) / 2);
+        return Math.sin((d * Math.PI) / 2);
     else if (scaleFactor==11) {
-        if (t<0.3)
-            return t*2                  // stretch middle third into half radius
-        else if (t>=0.3 && t<0.6)
-            return 0.5+(t-0.3)          // next third into third radius
+        if (d<0.3)
+            return d*2                  // stretch middle third into half radius
+        else if (d>=0.3 && d<0.6)
+            return 0.5+(d-0.3)          // next third into third radius
         else 
-            return 0.8+(t-0.6)*.2       // final third into 1/5th radius
+            return 0.8+(d-0.6)*.2       // final third into 1/5th radius
     }
 }
 
