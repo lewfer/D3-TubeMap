@@ -6,6 +6,7 @@
     <!--Load javascript libraries-->
     <script src="d3.v7.min.js"></script>
     <script src="settings.js"></script>
+    <script src="MapScale.js"></script>
     <script src="helpers.js"></script>
     <script src="chart.js"></script>
 
@@ -17,7 +18,7 @@
     <!--This is where the chart will be drawn-->
     <div id="chart"></div>
     <div class="slidecontainer">
-      <input type="range" min="1" max="8" value="1" class="slider" id="zoom">
+      <input type="range" min="1" max="8" step="1" value="1" class="slider" id="zoom">
     </div>
 
     <!--Script to draw the charts-->
