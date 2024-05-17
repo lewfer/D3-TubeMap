@@ -91,9 +91,9 @@ class MapScale {
         this.scaleLatToScreenY = d=>scale(d, this.minLat, this.maxLat, this.screenHeight/2, -this.screenHeight/2) 
 
         // Create functions to scale km and miles to pixels
-        let pixPerKm = this.screenWidth / this.widthKm()
-        this.scaleKm = km=>{let pix = km*pixPerKm; return this.maxRadius*ease(pix/this.maxRadius,this.scaleFactor)}
-        this.scaleMiles = mi=>{let pix = mi*1.60934*pixPerKm; return this.maxRadius*ease(pix/this.maxRadius,this.scaleFactor)}
+        this.pixPerKm = this.screenWidth / this.widthKm()
+        this.scaleKm = km=>{let pix = km*this.pixPerKm; return this.maxRadius*ease(pix/this.maxRadius,this.scaleFactor)}
+        this.scaleMiles = mi=>{let pix = mi*1.60934*this.pixPerKm; return this.maxRadius*ease(pix/this.maxRadius,this.scaleFactor)}
 
         // Compute max radius of the map for polar coords
         //let maxRadius = Math.min(PLOT.WIDTH/2, PLOT.HEIGHT/2)               // distance from centre to edge of shortest dimension
@@ -115,8 +115,8 @@ class MapScale {
         let y = this.scaleLatToScreenY(lat)
         //console.log(x)
         let polar = cartesian_to_polar({x:x, y:y})
-        console.log(this.radiusX)
-        console.log(polar.r)
+        // console.log(this.radiusX)
+        // console.log(polar.r)
         if (polar.r<this.radiusX)
             polar.r = this.radiusX*ease(polar.r/this.radiusX, this.scaleFactor)
         let cartesian = polar_to_cartesian(polar)
@@ -135,4 +135,42 @@ class MapScale {
         let cartesian = polar_to_cartesian(polar)
         return cartesian.y
     }    
+
+    // Scale the longitude non-linearly from the centre 
+    // Uses easing function to create non-linear scaling
+    xScaleToOuterCircle(lon, lat) {
+        let x = this.scaleLonToScreenX(lon)
+        let y = this.scaleLatToScreenY(lat)
+        let polar = cartesian_to_polar({x:x, y:y})
+        polar.r = this.radiusX*1
+        let cartesian = polar_to_cartesian(polar)
+        return cartesian.x
+    }
+
+    // Scale the latitude non-linearly from the centre 
+    // Uses easing function to create non-linear scaling
+    yScaleToOuterCircle(lon, lat) {
+        let x = this.scaleLonToScreenX(lon)
+        let y = this.scaleLatToScreenY(lat)
+        let polar = cartesian_to_polar({x:x, y:y})
+        polar.r = this.radiusY*1
+        let cartesian = polar_to_cartesian(polar)
+        return cartesian.y
+    }   
+    
+    xScale(lon, lat) {
+        if (this.scaleFactor == -1)
+            return this.xScaleToOuterCircle(lon, lat) 
+        else if (this.scaleFactor >=1 && this.scaleFactor <=8) {
+            return this.xScaleRadial(lon, lat)
+        }
+    }
+
+    yScale(lon, lat) {
+        if (this.scaleFactor == -1)
+            return this.yScaleToOuterCircle(lon, lat) 
+        else if (this.scaleFactor >=1 && this.scaleFactor <=8) {
+            return this.yScaleRadial(lon, lat)
+        }
+    }
 }

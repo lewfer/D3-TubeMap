@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tester for tube station markers</title>
+
+    <!--Load javascript libraries-->
+    <script src="d3.v7.min.js"></script>
+    <script src="helpers.js"></script>
+
+    <!--Load style sheet-->
+    <link rel="stylesheet" href="main.css" />
+  </head>
+  <body>
+    <svg
+      id="svg"
+      width="600"
+      height="600"
+      xmlns="http://www.w3.org/2000/svg"
+    ></svg>
+    <!--Script to draw the charts-->
+    <script>
+      let svg = d3.select("svg");
+      // Base example
+      let coords1 = [{x:100,y:100, cx:125, cy:200},
+                    {x:200,y:100, cx:175, cy:200},
+                    {x:200,y:100, cx:225, cy:0},
+                    {x:300,y:100, cx:275, cy:0}]
+
+      // Example where 2nd point is a sharp point
+      let coords2 = [{x:100,y:300, cx:125, cy:400},
+                    {x:200,y:300, cx:175, cy:400},
+                    {x:300,y:300, cx:275, cy:200}]
+
+      // Example where start and end points have no distinct control points
+      let coords3 = [
+        { x: 100, y: 500, cx: 100, cy: 500 },
+        { x: 200, y: 500, cx: 175, cy: 600 },
+        { x: 300, y: 500, cx: 300, cy: 500 },
+      ];
+
+      // Makes an SVG Path (d attrib) from coordinates
+      function makeSVGPath(coords) {
+        let d = "";
+
+        d += "M" + coords[0].x + "," + coords[0].y;
+        for (let i = 1; i < coords.length; i++) {
+          d += "C" + coords[i - 1].cx + "," + coords[i - 1].cy + ",";
+          d += coords[i].cx + "," + coords[i].cy + ",";
+          d += coords[i].x + "," + coords[i].y;
+        }
+        return d;
+      }
+
+      // Draw the example curves and markers
+      draw(coords1)
+      draw(coords2)
+      draw(coords3)
+
+      // Function to draw the curves and markers
+      function draw(coords) {
+        let g = svg.append("g")
+
+        // Make the path from the coordinates
+        let d = makeSVGPath(coords);
+
+        // Make the markers from the path
+        let markers = makeCurveMarkers(d);
+        console.log(markers);
+
+        // Draw curve
+        g
+          .append("path")
+          .attr("d", d)
+          .attr("stroke", "black")
+          .attr("fill", "transparent");
+
+        // Draw points
+        for (let i = 0; i < coords.length; i++) {
+          // Points
+          g
+            .append("circle")
+            .attr("cx", coords[i].x)
+            .attr("cy", coords[i].y)
+            .attr("r", 5)
+            .attr("fill", "blue");
+
+          // Control points
+          g
+            .append("circle")
+            .attr("cx", coords[i].cx)
+            .attr("cy", coords[i].cy)
+            .attr("r", 5)
+            .attr("fill", "red");
+
+          // Lines from points to control points
+          g
+            .append("line")
+            .attr("x1", coords[i].x)
+            .attr("x2", coords[i].cx)
+            .attr("y1", coords[i].y)
+            .attr("y2", coords[i].cy)
+            .attr("stroke", "grey")
+            .attr("fill", "transparent");
+        }
+
+        // Draw markers
+        let selectionMarkers = g.selectAll(".marker").data(markers);
+        selectionMarkers
+          .enter() // enter new data
+          .append("line")
+          .merge(selectionMarkers) // merge with existing data
+          .attr("class", "marker")
+          .attr("x1", (d) => d.x)
+          .attr("y1", (d) => d.y)
+          .attr("x2", (d) => +d.x - computeXFromGradient(d.g, 50))
+          .attr("y2", (d) => +d.y + computeYFromGradient(d.g, 50))
+          .style("stroke", "green")
+          .style("stroke-width", 5);
+      }
+    </script>
+  </body>
+</html>

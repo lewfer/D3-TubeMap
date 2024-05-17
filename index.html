@@ -8,6 +8,11 @@
     <script src="settings.js"></script>
     <script src="MapScale.js"></script>
     <script src="helpers.js"></script>
+    <script src="draw_map.js"></script>
+    <script src="draw_mile_radius_lines.js"></script>
+    <script src="draw_station_circles.js"></script>
+    <script src="draw_station_names.js"></script>
+    <script src="draw_lines.js"></script>
     <script src="chart.js"></script>
 
     <!--Load style sheet-->
@@ -16,10 +21,21 @@
   </head>
   <body>
     <!--This is where the chart will be drawn-->
-    <div id="chart"></div>
     <div class="slidecontainer">
       <input type="range" min="1" max="8" step="1" value="1" class="slider" id="zoom">
+
+      <label for="radial">radial</label><input type="radio" id="radial" name="scaling" value="radial" checked="checked">
+      <label for="0">0</label><input type="radio" id="0" name="scaling" value="0">
+      <label for="outercircle">outer circle</label><input type="radio" id="outercircle" name="scaling" value="outercircle">
+
+      
+      <label for="stations">stations</label><input type="checkbox" id="stations" name="stations" value="Stations" checked="checked">
+      <label for="names">names</label><input type="checkbox" id="names" name="names" value="Names" checked="checked">
+      <label for="lines">lines</label><input type="checkbox" id="lines" name="lines" value="Lines" checked="checked">      
+      <label for="circles">circles</label><input type="checkbox" id="circles" name="circles" value="Circles" checked="checked">   
     </div>
+    <div id="chart"></div>
+
 
     <!--Script to draw the charts-->
     <script>    

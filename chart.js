@@ -25,6 +25,10 @@ async function drawChart(container) {
         d.latitude = parseFloat(d.latitude), 
         d.longitude = parseFloat(d.longitude) 
     });    
+
+    // Where we want radius lines
+    let mileRadiusData = [5, 10, 15, 20]
+
  
     // Temp filter for debugging
     //data = data.filter(d=>d["name"] == 'Chesham')
@@ -62,117 +66,47 @@ async function drawChart(container) {
     let gLines = g.append("g").attr("id","lines")
 
 
-    // D3 uUpdate function
+    // D3 update function
     // -------------------------------------------------------------------------        
     function update(scaleFactor) { 
-        // Adjust scale factor when redrawn   
-        mapScale.scaleFactor = scaleFactor
- 
-        function scaleColour(d) {
-            return "black"
-        }
+        console.log("update")
+        // Adjust scale factor when redrawn
+        if (scaleFactor!=undefined)   
+            mapScale.scaleFactor = scaleFactor
 
-        // Function to generate screen lines for the train lines
-        let linepoints = d3.line()
-            .x(d=>mapScale.xScaleRadial(d["longitude"], d["latitude"]))
-            .y(d=>mapScale.yScaleRadial(d["longitude"], d["latitude"]))
-            .curve(d3.curveCatmullRom.alpha(0.5))
-
-
+        // Enter, update or exit radius lines
         if (SHOW_MILE_RADIUS_LINES) {
-            // Mile radius circles
-            let mileRadiusData = [5, 10, 15, 20]
-
-            // Get D3 selection object
-            let selection = gMilesRadii
-                .selectAll("circle") 
-                .data(mileRadiusData) 
-
-            // Add the circles to the chart
-            selection
-                .enter()
-                .append("circle")
-                .merge(selection)
-                .transition()
-                .duration(500)
-                    .attr("cx",mapScale.xScaleRadial(mapCentreLon, mapCentreLat))
-                    .attr("cy",mapScale.yScaleRadial(mapCentreLon, mapCentreLat))
-                    .attr("r",d=>mapScale.scaleMiles(d))
-                    .style("fill",      "none")
-                    .style("stroke", "red")                     
+            updateMileRadiusLines(gMilesRadii, mileRadiusData, mapScale)
+            updateMileRadiusLines2(gMilesRadii, mileRadiusData, mapScale) 
+        }
+        else {
+            removeMileRadiusLines(gMilesRadii)
         }
 
-
+        // Enter, update or exit station circles
         if (SHOW_STATION_CIRCLES) {
-            // Get D3 selection object
-            let circlesSelection = gStationCircles
-                .selectAll("circle") 
-                .data(data) 
-
-            // Add the station circles to the chart
-            circlesSelection
-                .enter() // enter new data
-                .append("circle")
-                .merge(circlesSelection) // merge with existing data
-                .transition()
-                .duration(500)
-                    .attr("cx",         d=>mapScale.xScaleRadial(d["longitude"], d["latitude"]))
-                    .attr("cy",         d=>mapScale.yScaleRadial(d["longitude"], d["latitude"]))        
-                    .attr("r",          5)
-                    .style("fill",      d=>scaleColour(d))
-                    .style("opacity",   1)
-
+            updateStationCircles(gStationCircles, data, mapScale)
+        }
+        else {
+            removeMileRadiusLines(gStationCircles)
         }
 
+        // Enter, update or exit station names
         if (SHOW_STATION_NAMES) {
-            // Get D3 selection object
-            let namesSelection = gStationNames
-                .selectAll("text") 
-                .data(data) 
-
-            // Add the station names to the chart
-            namesSelection
-                .enter()
-                .append("text")
-                .html(d=>d["name"])
-                .merge(namesSelection)
-                .transition()
-                .duration(500)
-                    .attr("x",         d=>mapScale.xScaleRadial(d["longitude"], d["latitude"]))
-                    .attr("y",         d=>mapScale.yScaleRadial(d["longitude"], d["latitude"])) 
-                    .style("fill",      "black")
-                    .style("opacity",   1)
-                    .attr("class",     "station")
+            updateStationNames(gStationNames, data, mapScale)
+        }
+        else {
+            removeStationNames(gStationNames)
         }
 
-        if (SHOW_LINES) {
-            // Loop through all the lines
-            for (let i=0; i<uniqueLines.length; i++) {
-                // Select the line data for just this line
-                filteredLinesData = linesData.filter(d=>d["line"] == uniqueLines[i])
-
-                const colour ="#094FA3"
-
-                // Get an object representing the one line
-                let selection = gLines.selectAll(".line"+i).data([filteredLinesData]) 
-                
-                selection.exit().remove()
-
-                // Add the line to the chart
-                selection
-                    //.join("path") - same as enter, append, merge
-                    .enter()
-                    .append("path")
-                    .merge(selection)
-                    .attr("class",      "line"+i)    
-                    .style("stroke",    colour)  
-                    .style("stroke-width", 5)
-                    .style("fill",      "none")  
-                    .transition()
-                    .duration(500)
-                    .attr("d",          d=>linepoints(d))
-            }
+        // Enter, update or exit lines
+        if (SHOW_LINES) { 
+            updateLines(gLines, linesData, uniqueLines, mapScale)
         }
+        else {
+            removeMileRadiusLines(gLines)
+        }
+        
     }
 
     update(1)
@@ -185,5 +119,43 @@ async function drawChart(container) {
             //scaleFactor = sliderValue
             update(scaleFactor)
         })
+
+    d3.select("#radial")
+        .on("click", function() {   
+            scaleFactor = document.getElementById("zoom").value 
+            update(scaleFactor)            
+        })   
+
+    d3.select("#outercircle")
+        .on("click", function() {   
+            scaleFactor = -1
+            update(scaleFactor)            
+        })      
+        
+
+    d3.select("#stations")
+        .on("click", function() {   
+            SHOW_STATION_CIRCLES = document.getElementById("stations").checked 
+            update()            
+        })      
+     
+    d3.select("#names")
+        .on("click", function() {   
+            SHOW_STATION_NAMES = document.getElementById("names").checked 
+            update()            
+        })    
+        
+    d3.select("#lines")
+        .on("click", function() {   
+            SHOW_LINES = document.getElementById("lines").checked 
+            update()            
+        })           
+
+    d3.select("#circles")
+        .on("click", function() {   
+            SHOW_MILE_RADIUS_LINES = document.getElementById("circles").checked 
+            console.log(SHOW_MILE_RADIUS_LINES)
+            update()            
+        })           
 
 }
